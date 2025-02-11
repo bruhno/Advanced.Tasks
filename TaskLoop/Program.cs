@@ -12,6 +12,7 @@ taskLoop.Task.Wait();
 class TaskLoop
 {
     public required Action A { get; init; }
+
     public required int Max { get; init; }
 
     public Task Task { get; private set; } = null!;
