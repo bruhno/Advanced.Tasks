@@ -21,7 +21,6 @@ class TaskLoop
     {
         if (Task is not null)
         {
-
             throw new InvalidOperationException("Task has been alredy run");
         }
 
