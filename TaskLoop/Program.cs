@@ -34,11 +34,27 @@ class TaskLoop
 
         for (var i = 1; i < Max; i++)
         {
-            task1 = task1.ContinueWith(_ => A());
+            task1 = task1
+                .ContinueWith(_ => Delay(1000))
+                .ContinueWith(_ => A());
         }
 
         task1.ContinueWith(_ => tcs.SetResult());
 
         task0.Start();
+    }
+
+    private static void Delay(int milliseconds)
+    {
+        using var ev = new ManualResetEvent(false);
+
+        using var timer = new Timer(
+            _ => ev.Set(),
+            null,
+            milliseconds,
+            0
+            );
+
+        ev.WaitOne();
     }
 }
