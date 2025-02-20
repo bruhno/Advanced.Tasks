@@ -4,9 +4,10 @@
     Max = 5,
 };
 
-
 Console.WriteLine($"Hello world {Environment.CurrentManagedThreadId}");
+
 taskLoop.Run();
+
 taskLoop.Task.Wait();
 
 class TaskLoop
@@ -15,46 +16,49 @@ class TaskLoop
 
     public required int Max { get; init; }
 
-    public Task Task { get; private set; } = null!;
+    public Task Task => _tcs.Task;
 
     public void Run()
     {
-        if (Task is not null)
-        {
-            throw new InvalidOperationException("Task has been alredy run");
-        }
-
-        var tcs = new TaskCompletionSource();
-
-        Task = tcs.Task;
-
         var task0 = new Task(A);
 
-        var task1 = task0;
-
-        for (var i = 1; i < Max; i++)
-        {
-            task1 = task1
-                .ContinueWith(_ => Delay(1000))
-                .ContinueWith(_ => A());
-        }
-
-        task1.ContinueWith(_ => tcs.SetResult());
+        ContinueWithDelay(task0, Max - 1);
 
         task0.Start();
     }
 
-    private static void Delay(int milliseconds)
+    private void ContinueWithDelay(Task task, int counter)
     {
-        using var ev = new ManualResetEvent(false);
+        if (counter == 0)
+        {
+            task.ContinueWith(_ =>
+            {
+                _timers.ForEach(t => t.Dispose());
+                _timers.Clear();
+                _tcs.SetResult();
+            });
 
-        using var timer = new Timer(
-            _ => ev.Set(),
-            null,
-            milliseconds,
-            0
-            );
+            return;
+        }
 
-        ev.WaitOne();
+        task.ContinueWith(_ =>
+        {
+            _timers.Add(new Timer(_ =>
+                {
+                    var task1 = new Task(A);
+
+                    ContinueWithDelay(task1, counter - 1);
+
+                    task1.Start();
+                },
+                null,
+                _DELAY,
+                0
+                ));
+        });
     }
+
+    private readonly List<Timer> _timers = new();
+    private readonly TaskCompletionSource _tcs = new();
+    private const int _DELAY = 2000;
 }
